@@ -1,0 +1,16 @@
+
+ / {
+     aliases {
+         lsm6ds0i2c = &i2c30;
+     };
+ };
+
+
+&i2c30 {
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&i2c22 {
+    status = "disabled";
+};
+

@@ -1,0 +1,46 @@
+source "Kconfig.zephyr"
+
+menu "ThaneHunt BLE HID KEYBOARD"
+
+config PROJECT_VERSION
+    string "Project version"
+    default "0.0.0"
+    help
+      This option sets the version string for the ThaneHunt BLE HID KEYBOARD
+      firmware. The version can be used in logs, advertising data, or exposed
+      via Device Information Service.
+
+config ENABLE_PASS_KEY_AUTH
+	bool "enable the pass key authentication"
+	default n
+	help
+	  This option enables support for the Security Manager Protocol
+	  (SMP), making it possible to pair devices over LE, with this option enable the device will ask to enter a pin
+	  or press a button to accept pairing to a host device.
+
+config BUTTON_LOG_LEVEL
+    int "Button module log level"
+    default 3
+    help
+      0=off, 1=err, 2=wrn, 3=inf, 4=dbg
+
+config NFC_OOB_PAIRING
+	bool "Enable NFC OOB pairing"
+	depends on HAS_HW_NRF_NFCT
+	default n
+	select NFC_T2T_NRFXLIB
+	select NFC_NDEF
+	select NFC_NDEF_MSG
+	select NFC_NDEF_RECORD
+	select NFC_NDEF_LE_OOB_REC
+
+config SETTINGS
+	default y
+
+config ZMS
+	default y if (SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
+
+config NVS
+	default y if !(SOC_FLASH_NRF_RRAM || SOC_FLASH_NRF_MRAM)
+
+endmenu
