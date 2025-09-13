@@ -15,7 +15,6 @@
 #include <bluetooth/services/hids.h>
 #include <zephyr/bluetooth/services/dis.h>
 #include <zephyr/logging/log.h>
-#include <dk_buttons_and_leds.h>
 
 #include "app_ble.h"
 #include "app_hid.h"
@@ -28,6 +27,7 @@ LOG_MODULE_REGISTER(APP_BLE);
 struct k_work pairing_work;
 
 volatile bool is_adv;
+volatile bool is_internal_ble_disconnect;
 
 K_MSGQ_DEFINE(mitm_queue,
               sizeof(struct pairing_data_mitm),
@@ -153,6 +153,11 @@ void connected(struct bt_conn *conn, uint8_t err)
 
 void disconnected(struct bt_conn *conn, uint8_t reason)
 {
+    if(is_internal_ble_disconnect)
+    {
+        is_internal_ble_disconnect = false;
+        return;
+    }
     int err;
     bool is_any_dev_connected = false;
     char addr[BT_ADDR_LE_STR_LEN];
@@ -220,6 +225,54 @@ int enable_bt(void)
     return err;
 }
 
+int ble_disconnect_safe(void)
+{
+    is_internal_ble_disconnect = true;
+
+    /* 1) Actively disconnect all known connections (HID rides on GATT) */
+    for (size_t i = 0; i < CONFIG_BT_HIDS_MAX_CLIENT_COUNT; i++)
+    {
+        struct bt_conn *c = conn_mode[i].conn;
+        if (!c)
+        {
+            continue;
+        }
+
+        /* Notify HID that link is going down (best effort) */
+        (void)disconnect_bt_hid(c);
+
+        /* Request BLE disconnect (REMOTE_USER is the normal reason) */
+        (void)bt_conn_disconnect(c, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+    }
+
+    /* 2) Short grace period so host/controller can process LL/GATT terminate */
+    k_sleep(K_MSEC(100));
+
+    /* 3) Unref and clear stored connection pointers */
+    for (size_t i = 0; i < CONFIG_BT_HIDS_MAX_CLIENT_COUNT; i++)
+    {
+        if (conn_mode[i].conn)
+        {
+            bt_conn_unref(conn_mode[i].conn);
+            conn_mode[i].conn = NULL;
+            conn_mode[i].in_boot_mode = false;
+        }
+    }
+
+    /* 4) Stop advertising if running; ignore not-active errors */
+    if (is_adv)
+    {
+        int err = bt_le_adv_stop();
+        (void)err; /* ok if already stopped */
+        is_adv = false;
+    }
+
+    /* 5) Optional tiny settle */
+    k_sleep(K_MSEC(20));
+
+    return 0;
+}
+
 #if (CONFIG_ENABLE_PASS_KEY_AUTH)
 static void security_changed(struct bt_conn *conn, bt_security_t level,
                              enum bt_security_err err)
@@ -235,7 +288,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
     else
     {
         LOG_INF("Security failed: %s level %u err %d %s\n", addr, level, err,
-               bt_security_err_to_str(err));
+                bt_security_err_to_str(err));
     }
 }
 #endif
@@ -322,7 +375,7 @@ static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
     bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
     LOG_INF("Pairing failed conn: %s, reason %d %s\n", addr, reason,
-           bt_security_err_to_str(reason));
+            bt_security_err_to_str(reason));
 }
 
 static struct bt_conn_auth_cb conn_auth_callbacks = {

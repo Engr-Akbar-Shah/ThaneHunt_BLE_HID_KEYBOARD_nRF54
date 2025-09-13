@@ -42,6 +42,7 @@ void connected(struct bt_conn *conn, uint8_t err);
 void disconnected(struct bt_conn *conn, uint8_t reason);
 int enable_bt(void);
 void bas_notify(void);
+int ble_disconnect_safe(void);
 
 #if (CONFIG_ENABLE_PASS_KEY_AUTH)
 int bt_register_auth_callbacks(void);

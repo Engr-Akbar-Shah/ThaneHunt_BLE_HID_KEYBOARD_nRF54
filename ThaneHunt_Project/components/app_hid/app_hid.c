@@ -17,6 +17,9 @@ LOG_MODULE_REGISTER(APP_HID);
 #define KEY_CTRL_CODE_MIN 224 /* Control key codes - required 8 of them */
 #define KEY_CTRL_CODE_MAX 231 /* Control key codes - required 8 of them */
 
+/* Current report map construction requires exactly 8 buttons */
+BUILD_ASSERT((KEY_CTRL_CODE_MAX - KEY_CTRL_CODE_MIN) + 1 == 8);
+
 struct keyboard_state
 {
 	uint8_t ctrl_keys_state; /* Current keys state */
