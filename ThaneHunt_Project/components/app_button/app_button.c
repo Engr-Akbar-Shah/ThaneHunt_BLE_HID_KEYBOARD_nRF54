@@ -72,37 +72,6 @@ static void idle_timeout(struct k_timer *t)
 	k_work_submit(&idle_work); /* defer to thread context */
 }
 
-void num_comp_reply(bool accept)
-{
-	struct pairing_data_mitm pairing_data;
-	struct bt_conn *conn;
-
-	if (k_msgq_get(&mitm_queue, &pairing_data, K_NO_WAIT) != 0)
-	{
-		return;
-	}
-
-	conn = pairing_data.conn;
-#if (CONFIG_ENABLE_PASS_KEY_AUTH)
-	if (accept)
-	{
-		bt_conn_auth_passkey_confirm(conn);
-		LOG_INF("Numeric Match, conn %p\n", conn);
-	}
-	else
-	{
-		bt_conn_auth_cancel(conn);
-		LOG_ERR("Numeric Reject, conn %p\n", conn);
-	}
-#endif
-	bt_conn_unref(pairing_data.conn);
-
-	if (k_msgq_num_used_get(&mitm_queue))
-	{
-		k_work_submit(&pairing_work);
-	}
-}
-
 static void button_text_changed(bool down, uint8_t *chr)
 {
 	if (down)
@@ -249,7 +218,6 @@ static void button_thread_fn(void *p1, void *p2, void *p3)
 		{
 			button_shift_changed(ev);
 		}
-		k_msleep(1000);
 	}
 }
 
