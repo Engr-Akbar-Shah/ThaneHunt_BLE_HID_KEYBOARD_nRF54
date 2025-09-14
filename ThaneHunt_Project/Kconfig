@@ -18,11 +18,18 @@ config ENABLE_PASS_KEY_AUTH
 	  (SMP), making it possible to pair devices over LE, with this option enable the device will ask to enter a pin
 	  or press a button to accept pairing to a host device.
 
-config BUTTON_LOG_LEVEL
-    int "Button module log level"
-    default 3
-    help
-      0=off, 1=err, 2=wrn, 3=inf, 4=dbg
+config DEVICE_IDLE_TIMEOUT_SECONDS
+	int "Device idle timeout (seconds)"
+	default 30
+	help
+	  This option sets the duration of inactivity (in seconds) after which the device will enter a low-power idle state.
+	  A value of 0 disables the idle timeout feature.
+
+config IMU_LSM6DSO
+	bool "Enable LSM6DSO IMU support"
+	default y
+	help
+	  This option enables support for the LSM6DSO IMU sensor, allowing the device to read motion data from the sensor.
 
 config NFC_OOB_PAIRING
 	bool "Enable NFC OOB pairing"

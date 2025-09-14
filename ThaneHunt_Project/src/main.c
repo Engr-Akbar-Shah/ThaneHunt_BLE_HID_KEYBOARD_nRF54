@@ -1,10 +1,30 @@
-#include <assert.h>
+/*
+Name : main
+
+Description :
+	Main entry point for the BLE HID keyboard application on Zephyr RTOS.
+	This file coordinates initialization of GPIO buttons/LEDs, the HID
+	service, and the Bluetooth stack. It optionally registers passkey
+	authentication callbacks, starts the button handling thread, and
+	manages system status indicators. The main loop provides LED activity
+	feedback during advertising and simulates periodic battery service
+	updates.
+
+Date : 2025-09-14
+
+Developer : Engineer Akbar Shah
+*/
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 #include "app_ble.h"
 #include "app_button.h"
 #include "app_hid.h"
+
+#if CONFIG_IMU_LSM6DSO
+#include "app_imu.h"
+#endif
 
 LOG_MODULE_REGISTER(MAIN);
 
@@ -14,7 +34,7 @@ int main(void)
 
 	LOG_INF("Starting BLE HIDS keyboard VERSION: [%s]\n\r", CONFIG_PROJECT_VERSION);
 
-	configure_gpio();
+	init_user_buttons();
 
 #if (CONFIG_ENABLE_PASS_KEY_AUTH)
 	err = bt_register_auth_callbacks();
@@ -28,6 +48,12 @@ int main(void)
 		return 0;
 
 	button_thread_start();
+
+#if CONFIG_IMU_LSM6DSO
+	err = imu_lsm6dso_init();
+	if (err != 0)
+		return 0;
+#endif
 	bool is_led_off = false;
 
 	for (;;)
@@ -45,8 +71,12 @@ int main(void)
 				user_led_turn_off();
 			}
 		}
-		k_msleep(1000);
+#if CONFIG_IMU_LSM6DSO
+		imu_readDisplay_raw_data();
+#endif
 		/* Battery level simulation */
 		bas_notify();
+
+		k_msleep(1000);
 	}
 }

@@ -30,17 +30,28 @@ target_include_directories(app
     ${CMAKE_CURRENT_SOURCE_DIR}/components/app_hid
 )
 
-# Add the component app_imu
-target_sources(app PRIVATE
-    components/app_imu/app_imu.c)
-target_include_directories(app
-    PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/components/app_imu
-)
+if(CONFIG_IMU_LSM6DSO)
+    # Add the component app_imu
+    target_sources(app PRIVATE
+        components/app_imu/app_imu.c)
+    target_include_directories(app
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/app_imu
+    )
+endif()
+
 # Add the component app_keycodes
 target_sources(app PRIVATE
     components/app_keycodes/app_keycodes.c)
 target_include_directories(app
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/components/app_keycodes
+)
+
+# Add the component app_sleep
+target_sources(app PRIVATE
+    components/app_sleep/app_sleep.c)
+target_include_directories(app
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/app_sleep
 )

@@ -1,4 +1,20 @@
+/*
+Name : app_hid
 
+Description : 
+    This module implements the Human Interface Device (HID) over GATT 
+    service for Bluetooth Low Energy (BLE) using Zephyr RTOS. It manages 
+    keyboard state, key press/release reporting, HID report map 
+    initialization, protocol mode events, and output report handling 
+    (e.g., Caps Lock). It works alongside the BLE module to enable full 
+    HID keyboard functionality.
+
+Date : 2025-09-14
+
+Developer : Engineer Akbar Shah
+*/
+
+#include <assert.h>
 #include <bluetooth/services/hids.h>
 #include <zephyr/logging/log.h>
 
@@ -39,12 +55,44 @@ BT_HIDS_DEF(hids_obj,
             OUTPUT_REPORT_MAX_LEN,
             INPUT_REPORT_KEYS_MAX_LEN);
 
+/*
+Function : caps_lock_handler
+
+Description : 
+    Handles the state change of the Caps Lock key by checking the output 
+    report data from the host. Currently only retrieves the Caps Lock state.
+
+Parameter : 
+    rep : Pointer to the HID output report structure containing LED states
+
+Return : 
+    void
+
+Example Call : 
+    caps_lock_handler(rep);
+*/
 static void caps_lock_handler(const struct bt_hids_rep *rep)
 {
     uint8_t report_val = ((*rep->data) & OUTPUT_REPORT_BIT_MASK_CAPS_LOCK) ? 1 : 0;
     (void)report_val; /* silence -Wunused-variable for now */
 }
 
+/*
+Function : button_ctrl_code
+
+Description : 
+    Converts a control key (224–231) into its corresponding bitmask value 
+    for HID reports. Returns 0 if the key is outside the control key range.
+
+Parameter : 
+    key : HID key code value
+
+Return : 
+    uint8_t : Bitmask of the control key, or 0 if not a control key
+
+Example Call : 
+    uint8_t mask = button_ctrl_code(key);
+*/
 static uint8_t button_ctrl_code(uint8_t key)
 {
 	if (KEY_CTRL_CODE_MIN <= key && key <= KEY_CTRL_CODE_MAX)
@@ -54,6 +102,24 @@ static uint8_t button_ctrl_code(uint8_t key)
 	return 0;
 }
 
+/*
+Function : key_report_con_send
+
+Description : 
+    Sends a keyboard input report (either in boot or report mode) to a 
+    connected device using the HID service.
+
+Parameter : 
+    state     : Pointer to the keyboard_state structure containing key states
+    boot_mode : Boolean flag indicating whether to send in boot mode
+    conn      : Pointer to the Bluetooth connection structure
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    key_report_con_send(&hid_keyboard_state, false, conn);
+*/
 int key_report_con_send(const struct keyboard_state *state,
                         bool boot_mode,
                         struct bt_conn *conn)
@@ -87,16 +153,66 @@ int key_report_con_send(const struct keyboard_state *state,
     return err;
 }
 
+
+/*
+Function : connect_bt_hid
+
+Description : 
+    Notifies the HID service that a new device has connected.
+
+Parameter : 
+    conn : Pointer to the Bluetooth connection structure
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    connect_bt_hid(conn);
+*/
 int connect_bt_hid(struct bt_conn *conn)
 {
     return bt_hids_connected(&hids_obj, conn);
 }
 
+/*
+Function : disconnect_bt_hid
+
+Description : 
+    Notifies the HID service that a device has disconnected.
+
+Parameter : 
+    conn : Pointer to the Bluetooth connection structure
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    disconnect_bt_hid(conn);
+*/
 int disconnect_bt_hid(struct bt_conn *conn)
 {
     return bt_hids_disconnected(&hids_obj, conn);
 }
 
+/*
+Function : hids_boot_kb_outp_rep_handler
+
+Description : 
+    Callback handler for processing Boot Keyboard output reports. Logs 
+    events and handles Caps Lock state when written.
+
+Parameter : 
+    rep   : Pointer to HID output report
+    conn  : Pointer to the Bluetooth connection structure
+    write : Boolean flag indicating whether the report was written (true) 
+            or read (false)
+
+Return : 
+    void
+
+Example Call : 
+    hids_boot_kb_outp_rep_handler(rep, conn, true);
+*/
 static void hids_boot_kb_outp_rep_handler(struct bt_hids_rep *rep,
                                           struct bt_conn *conn,
                                           bool write)
@@ -114,6 +230,23 @@ static void hids_boot_kb_outp_rep_handler(struct bt_hids_rep *rep,
     caps_lock_handler(rep);
 }
 
+/*
+Function : hids_pm_evt_handler
+
+Description : 
+    Handles HID protocol mode events (boot mode entered, report mode entered). 
+    Updates the connection mode state accordingly.
+
+Parameter : 
+    evt  : Protocol mode event type
+    conn : Pointer to the Bluetooth connection structure
+
+Return : 
+    void
+
+Example Call : 
+    hids_pm_evt_handler(BT_HIDS_PM_EVT_BOOT_MODE_ENTERED, conn);
+*/
 static void hids_pm_evt_handler(enum bt_hids_pm_evt evt,
                                 struct bt_conn *conn)
 {
@@ -153,6 +286,25 @@ static void hids_pm_evt_handler(enum bt_hids_pm_evt evt,
     }
 }
 
+/*
+Function : hids_outp_rep_handler
+
+Description : 
+    Callback handler for processing standard HID output reports. Logs events 
+    and handles Caps Lock state when written.
+
+Parameter : 
+    rep   : Pointer to HID output report
+    conn  : Pointer to the Bluetooth connection structure
+    write : Boolean flag indicating whether the report was written (true) 
+            or read (false)
+
+Return : 
+    void
+
+Example Call : 
+    hids_outp_rep_handler(rep, conn, true);
+*/
 static void hids_outp_rep_handler(struct bt_hids_rep *rep,
                                   struct bt_conn *conn,
                                   bool write)
@@ -170,6 +322,23 @@ static void hids_outp_rep_handler(struct bt_hids_rep *rep,
     caps_lock_handler(rep);
 }
 
+/*
+Function : hid_init
+
+Description : 
+    Initializes the HID service by setting up input/output report structures, 
+    report map, protocol mode handlers, and registering the HID device with 
+    the Bluetooth stack.
+
+Parameter : 
+    None
+
+Return : 
+    void
+
+Example Call : 
+    hid_init();
+*/
 void hid_init(void)
 {
     int err;
@@ -256,6 +425,22 @@ void hid_init(void)
     __ASSERT(err == 0, "HIDS initialization failed\n");
 }
 
+/*
+Function : hid_kbd_state_key_set
+
+Description : 
+    Updates the internal keyboard state by setting a key as pressed. Handles 
+    both control and standard keys. Fails if all key slots are busy.
+
+Parameter : 
+    key : HID key code to set
+
+Return : 
+    int : 0 on success, -EBUSY if no free slots available
+
+Example Call : 
+    hid_kbd_state_key_set(key);
+*/
 static int hid_kbd_state_key_set(uint8_t key)
 {
 	uint8_t ctrl_mask = button_ctrl_code(key);
@@ -277,6 +462,22 @@ static int hid_kbd_state_key_set(uint8_t key)
 	return -EBUSY;
 }
 
+/*
+Function : hid_kbd_state_key_clear
+
+Description : 
+    Updates the internal keyboard state by clearing a previously pressed key. 
+    Handles both control and standard keys. Fails if key is not found.
+
+Parameter : 
+    key : HID key code to clear
+
+Return : 
+    int : 0 on success, -EINVAL if key not found
+
+Example Call : 
+    hid_kbd_state_key_clear(key);
+*/
 static int hid_kbd_state_key_clear(uint8_t key)
 {
 	uint8_t ctrl_mask = button_ctrl_code(key);
@@ -298,6 +499,22 @@ static int hid_kbd_state_key_clear(uint8_t key)
 	return -EINVAL;
 }
 
+/*
+Function : key_report_send
+
+Description : 
+    Sends the current keyboard state as an HID report to all connected 
+    clients. Iterates through all active connections.
+
+Parameter : 
+    None
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    key_report_send();
+*/
 static int key_report_send(void)
 {
 	for (size_t i = 0; i < CONFIG_BT_HIDS_MAX_CLIENT_COUNT; i++)
@@ -319,6 +536,24 @@ static int key_report_send(void)
 	return 0;
 }
 
+/*
+Function : hid_buttons_press
+
+Description : 
+    Marks one or more keys as pressed in the keyboard state and sends an 
+    updated HID report to connected devices.
+
+Parameter : 
+    keys : Pointer to an array of key codes
+    cnt  : Number of key codes in the array
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    uint8_t keys[] = {0x04, 0x05};
+    hid_buttons_press(keys, 2);
+*/
 int hid_buttons_press(const uint8_t *keys, size_t cnt)
 {
 	while (cnt--)
@@ -336,6 +571,24 @@ int hid_buttons_press(const uint8_t *keys, size_t cnt)
 	return key_report_send();
 }
 
+/*
+Function : hid_buttons_release
+
+Description : 
+    Marks one or more keys as released in the keyboard state and sends an 
+    updated HID report to connected devices.
+
+Parameter : 
+    keys : Pointer to an array of key codes
+    cnt  : Number of key codes in the array
+
+Return : 
+    int : 0 on success, negative error code on failure
+
+Example Call : 
+    uint8_t keys[] = {0x04, 0x05};
+    hid_buttons_release(keys, 2);
+*/
 int hid_buttons_release(const uint8_t *keys, size_t cnt)
 {
 	while (cnt--)

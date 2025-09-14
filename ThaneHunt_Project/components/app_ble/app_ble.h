@@ -1,3 +1,16 @@
+/*
+Name : app_ble
+
+Description : This module implements Bluetooth Low Energy (BLE) functionality for
+			  HID-enabled devices using Zephyr RTOS. It handles BLE initialization,
+			  advertising, connection management, authentication, and Battery Service
+			  notifications to support HID profiles such as keyboards or mice.
+
+Date : 2025-09-14
+
+Developer : Engineer Akbar Shah
+*/
+
 #ifndef APP_BLE_H
 #define APP_BLE_H
 
@@ -26,8 +39,8 @@ struct conn_mode
 extern struct conn_mode conn_mode[CONFIG_BT_HIDS_MAX_CLIENT_COUNT];
 
 extern volatile bool is_adv;
+extern volatile bool isBle_connected;
 
-void advertising_start(void);
 void connected(struct bt_conn *conn, uint8_t err);
 void disconnected(struct bt_conn *conn, uint8_t reason);
 int enable_bt(void);

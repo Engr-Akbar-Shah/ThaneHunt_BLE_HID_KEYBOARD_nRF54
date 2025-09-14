@@ -1,3 +1,19 @@
+/*
+Name : app_hid
+
+Description : 
+    This module implements the Human Interface Device (HID) over GATT 
+    service for Bluetooth Low Energy (BLE) using Zephyr RTOS. It manages 
+    keyboard state, key press/release reporting, HID report map 
+    initialization, protocol mode events, and output report handling 
+    (e.g., Caps Lock). It works alongside the BLE module to enable full 
+    HID keyboard functionality.
+
+Date : 2025-09-14
+
+Developer : Engineer Akbar Shah
+*/
+
 #ifndef APP_HID_H
 #define APP_HID_H
 
