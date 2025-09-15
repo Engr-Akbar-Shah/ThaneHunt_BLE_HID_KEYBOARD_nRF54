@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "conn.h": "c",
-        "app_hid.h": "c"
-    }
-}

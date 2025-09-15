@@ -5,6 +5,10 @@
      };
  };
 
+&lsm6dso {
+    status = "disabled";
+};
+
 
 &i2c30 {
 	clock-frequency = <I2C_BITRATE_FAST>;
@@ -24,6 +28,7 @@
      };
  };
  &gpio0 {
+    status = "okay";
      sense-edge-mask = <(BIT(0))>;
  };
 
@@ -32,7 +37,7 @@
          compatible = "gpio-leds";
          led_0: led_0 {
              label = "user led 0";
-             gpios = <&gpio2 0 GPIO_ACTIVE_HIGH>;  // example pin
+             gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;  // example pin
          };
      };
  };

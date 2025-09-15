@@ -15,8 +15,6 @@ Developer : Engineer Akbar Shah
 #ifndef APP_SLEEP_H
 #define APP_SLEEP_H
 
-void PRINT_RESET_CAUSE();
-
 void start_idle_timer(void);
 void reset_idle_timer(void);
 

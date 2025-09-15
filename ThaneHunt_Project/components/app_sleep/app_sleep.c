@@ -15,7 +15,6 @@ Developer : Engineer Akbar Shah
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/poweroff.h>
-#include <zephyr/drivers/hwinfo.h>
 
 #include "app_ble.h"
 #include "app_sleep.h"
@@ -28,6 +27,7 @@ LOG_MODULE_REGISTER(APP_SLEEP);
 
 static void idle_work_fn(struct k_work *w);
 static void idle_timeout(struct k_timer *t);
+;
 
 K_WORK_DEFINE(idle_work, idle_work_fn);
 K_TIMER_DEFINE(idle_timer, idle_timeout, NULL);
@@ -52,7 +52,8 @@ void enter_device_sleep(void)
 {
     LOG_DBG("Entering deep sleep (system-off)");
     /* Ensure your app stopped BLE/adv, completed DMA, etc. */
-    sys_poweroff(); /* does not return */
+    k_sleep(K_MSEC(5000)); /* grace period */
+    sys_poweroff();        /* does not return */
 }
 
 /*
@@ -74,12 +75,18 @@ Example Call :
 static void idle_work_fn(struct k_work *w)
 {
 #if CONFIG_IMU_LSM6DSO
-    lsm6dso_accel_gyro_power_down();
+    int err = lsm6dso_accel_gyro_power_down();
+    if (err)
+    {
+        LOG_ERR("Failed to power down LSM6DSO (err: %d)", err);
+    }
+    LOG_INF("LSM6DSO powered down");
 #endif
     LOG_DBG("Idle work: disconnecting BLE and entering deep sleep");
     (void)ble_disconnect_safe(); /* your helper */
-    k_sleep(K_MSEC(3000));       /* grace period */
-    enter_device_sleep();        /* calls sys_poweroff() */
+
+    LOG_WRN("No activity -> disconnect + deep sleep");
+    enter_device_sleep(); /* calls sys_poweroff() */
 }
 
 /*
@@ -100,7 +107,7 @@ Example Call :
 */
 static void idle_timeout(struct k_timer *t)
 {
-    LOG_WRN("No activity -> disconnect + deep sleep");
+    k_msleep(100);             // debounce delay
     k_work_submit(&idle_work); /* defer to thread context */
 }
 
@@ -171,99 +178,4 @@ void reset_idle_timer(void)
     stop_idle_timer();
     start_idle_timer();
     LOG_DBG("Idle timer reset");
-}
-
-void PRINT_RESET_CAUSE()
-{
-    uint32_t reset_cause = 0;
-    if (0 == hwinfo_get_reset_cause(&reset_cause))
-    {
-        char reset_cause_as_string[16][25] = {
-            "RESET BY PIN            ",
-            "RESET BY SOFTWARE       ",
-            "RESET BY BROWNOUT       ",
-            "RESET BY POR            ",
-            "RESET BY WATCHDOG       ",
-            "RESET BY DEBUG          ",
-            "RESET BY SECURITY       ",
-            "RESET BY LOW_POWER_WAKE ",
-            "RESET BY CPU_LOCKUP     ",
-            "RESET BY PARITY         ",
-            "RESET BY PLL            ",
-            "RESET BY CLOCK          ",
-            "RESET BY HARDWARE       ",
-            "RESET BY USER           ",
-            "RESET BY TEMPERATURE    ",
-            "RESET CAUSE UNKNOWN     "};
-
-        LOG_WRN("Reset cause: %d", reset_cause);
-        if (0 == reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[15]);
-        }
-        else if (RESET_PIN & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[0]);
-        }
-        else if (RESET_SOFTWARE & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[1]);
-        }
-        else if (RESET_SOFTWARE & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[1]);
-        }
-        else if (RESET_BROWNOUT & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[2]);
-        }
-        else if (RESET_POR & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[3]);
-        }
-        else if (RESET_WATCHDOG & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[4]);
-        }
-        else if (RESET_DEBUG & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[5]);
-        }
-        else if (RESET_SECURITY & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[6]);
-        }
-        else if (RESET_LOW_POWER_WAKE & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[7]);
-        }
-        else if (RESET_CPU_LOCKUP & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[8]);
-        }
-        else if (RESET_PARITY & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[9]);
-        }
-        else if (RESET_PLL & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[10]);
-        }
-        else if (RESET_CLOCK & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[11]);
-        }
-        else if (RESET_HARDWARE & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[12]);
-        }
-        else if (RESET_USER & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[13]);
-        }
-        else if (RESET_TEMPERATURE & reset_cause)
-        {
-            LOG_WRN("%s", reset_cause_as_string[14]);
-        }
-    }
 }

@@ -25,13 +25,13 @@ Developer : Engineer Akbar Shah
 
 LOG_MODULE_REGISTER(APP_BUTTON);
 
-#define USER_LED_NODE 				DT_NODELABEL(led_0)
-#define USER_BUTTON_NODE 			DT_NODELABEL(button_0)
-#define USER_BUTTON_PIN 			DT_GPIO_PIN(USER_BUTTON_NODE, gpios)
-#define KEY_TEXT_MASK 				BIT(USER_BUTTON_PIN)
-#define BUTTON_THREAD_STACK_SIZE 	2048
-#define BUTTON_THREAD_PRIO 			0
-#define BUTTON_DEBOUNCE_MS 			10
+#define USER_LED_NODE DT_NODELABEL(led_0)
+#define USER_BUTTON_NODE DT_NODELABEL(button_0)
+#define USER_BUTTON_PIN DT_GPIO_PIN(USER_BUTTON_NODE, gpios)
+#define KEY_TEXT_MASK BIT(USER_BUTTON_PIN)
+#define BUTTON_THREAD_STACK_SIZE 2048
+#define BUTTON_THREAD_PRIO 0
+#define BUTTON_DEBOUNCE_MS 10
 
 static struct gpio_callback button_cb;
 
@@ -170,11 +170,9 @@ Example Call :
 int init_user_led(void)
 {
 	int err;
-	err = device_is_ready(user_led.port);
-	if (!err)
+	if (!device_is_ready(user_led.port))
 	{
-		LOG_ERR("LED device not ready\n");
-		return err;
+		return -ENODEV;
 	}
 
 	err = gpio_pin_configure_dt(&user_led, GPIO_OUTPUT);
@@ -419,10 +417,9 @@ Example Call :
 */
 int read_latch_register(void)
 {
-	uint32_t lat = NRF_P1->LATCH; /* snapshot */
+	uint32_t lat = NRF_P0->LATCH; /* snapshot */
 	if (lat)
 	{
-		LOG_INF("LATCH P1: 0x%08x", lat);
 		if (lat & BIT(USER_BUTTON_PIN))
 		{
 			LATCH_RESET_BUTTON = true;
@@ -431,8 +428,6 @@ int read_latch_register(void)
 		/* Clear only the bits that were set */
 		NRF_P0->LATCH = lat; /* write-1-to-clear */
 	}
-	PRINT_RESET_CAUSE();
-
 	/* If your board also uses P1, read/clear NRF_P1->LATCH similarly. */
 	return 0;
 }
@@ -446,4 +441,4 @@ Description :
 	This ensures the GPIO latch state is checked and cleared early in the
 	boot process, before most kernel services are started.
 */
-SYS_INIT(read_latch_register, PRE_KERNEL_1, 0);
+SYS_INIT(read_latch_register, APPLICATION, 0);

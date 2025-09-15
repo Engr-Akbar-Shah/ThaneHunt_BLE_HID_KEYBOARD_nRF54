@@ -72,9 +72,14 @@ int main(void)
 			}
 		}
 #if CONFIG_IMU_LSM6DSO
+		if (imu_power_down)
+		{
+			k_msleep(10000);
+			continue;
+		}
 		imu_readDisplay_raw_data();
 #endif
-		/* Battery level simulation */
+		// 		/* Battery level simulation */
 		bas_notify();
 
 		k_msleep(1000);

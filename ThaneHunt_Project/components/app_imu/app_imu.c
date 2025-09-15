@@ -36,6 +36,8 @@ LOG_MODULE_REGISTER(APP_IMU, LOG_LEVEL_INF);
 
 const struct device *i2c_dev = DEVICE_DT_GET(DT_ALIAS(lsm6ds0i2c));
 
+bool imu_power_down = false;
+
 struct lsm6dso_raw_data
 {
     int16_t accel_x;
@@ -187,11 +189,11 @@ Example Call :
 */
 static void lsm6dso_display_raw_data(const struct lsm6dso_raw_data *raw_data, int count)
 {
-    LOG_INF("accel raw: X:%d Y:%d Z:%d (LSB)\n",
+    LOG_INF("accel raw: X:%d Y:%d Z:%d (LSB)",
             raw_data->accel_x, raw_data->accel_y, raw_data->accel_z);
-    LOG_INF("gyro raw: X:%d Y:%d Z:%d (LSB)\n",
+    LOG_INF("gyro raw: X:%d Y:%d Z:%d (LSB)",
             raw_data->gyro_x, raw_data->gyro_y, raw_data->gyro_z);
-    LOG_INF("trig_cnt:%d\n\n", count);
+    LOG_INF("trig_cnt:%d\n", count);
 }
 
 /*
@@ -273,6 +275,7 @@ Example Call :
 int lsm6dso_accel_gyro_power_down(void)
 {
     int ret;
+    imu_power_down = true;
 
     ret = lsm6dso_accel_power_down(i2c_dev);
     if (ret)
@@ -369,8 +372,6 @@ void imu_readDisplay_raw_data(void)
 
     struct lsm6dso_raw_data sensor_data;
     static int trig_cnt = 0; // Ensure only initialized once in main scope
-
-    LOG_INF("Testing LSM6DSO sensor in polling mode (custom I2C driver) - Raw Data Output.\n\n");
 
     trig_cnt++; // Increment counter at the start of each loop
 

@@ -14,6 +14,10 @@ Developer : Engineer Akbar Shah
 #ifndef APP_IMU_H
 #define APP_IMU_H
 
+#include <stdbool.h>
+
+extern bool imu_power_down;
+
 int imu_lsm6dso_init(void);
 void imu_readDisplay_raw_data(void);
 int lsm6dso_accel_gyro_power_down(void);
