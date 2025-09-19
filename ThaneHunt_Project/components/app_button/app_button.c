@@ -100,6 +100,7 @@ static void onButton_reset_send_spaceBar(void)
 {
 	static const uint8_t key = HID_KEY_SPACE;
 	(void)hid_buttons_press(&key, 1);
+	k_msleep(50);
 	(void)hid_buttons_release(&key, 1);
 	LOG_DBG("Sent SPACE key tap after wakeup");
 }
@@ -441,4 +442,4 @@ Description :
 	This ensures the GPIO latch state is checked and cleared early in the
 	boot process, before most kernel services are started.
 */
-SYS_INIT(read_latch_register, APPLICATION, 0);
+SYS_INIT(read_latch_register, PRE_KERNEL_1, 0);

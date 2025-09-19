@@ -342,9 +342,11 @@ Example Call :
 void hid_init(void)
 {
     int err;
-    struct bt_hids_init_param hids_init_obj = {0};
+    static struct bt_hids_init_param hids_init_obj;
     struct bt_hids_inp_rep *hids_inp_rep;
     struct bt_hids_outp_feat_rep *hids_outp_rep;
+
+    memset(&hids_init_obj, 0, sizeof(hids_init_obj));
 
     static const uint8_t report_map[] = {
         0x05, 0x01, /* Usage Page (Generic Desktop) */
@@ -496,7 +498,7 @@ static int hid_kbd_state_key_clear(uint8_t key)
 		}
 	}
 	/* Key not found */
-	return -EINVAL;
+	return 0;
 }
 
 /*
@@ -598,7 +600,7 @@ int hid_buttons_release(const uint8_t *keys, size_t cnt)
 		err = hid_kbd_state_key_clear(*keys++);
 		if (err)
 		{
-			LOG_INF("Cannot clear selected key.\n");
+			LOG_DBG("Cannot clear selected key. %d\n", err);
 			return err;
 		}
 	}

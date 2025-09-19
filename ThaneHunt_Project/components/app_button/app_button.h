@@ -16,6 +16,8 @@ Developer : Engineer Akbar Shah
 #ifndef APP_BUTTON_H
 #define APP_BUTTON_H
 
+int read_latch_register(void);
+
 int init_user_led(void);
 void user_led_turn_on(void);
 void user_led_turn_off(void);

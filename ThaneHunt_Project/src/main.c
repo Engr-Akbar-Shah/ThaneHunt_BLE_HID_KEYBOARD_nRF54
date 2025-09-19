@@ -35,19 +35,24 @@ int main(void)
 	LOG_INF("Starting BLE HIDS keyboard VERSION: [%s]\n\r", CONFIG_PROJECT_VERSION);
 
 	init_user_buttons();
+	k_msleep(100); // Allow time for button GPIOs to stabilize
 
 #if (CONFIG_ENABLE_PASS_KEY_AUTH)
 	err = bt_register_auth_callbacks();
 	if (err)
 		return 0;
 #endif
+	k_msleep(100);
 	hid_init();
-
+	k_msleep(100);
 	err = enable_bt();
 	if (err)
 		return 0;
 
+	k_msleep(100);
 	button_thread_start();
+
+	k_msleep(100); 
 
 #if CONFIG_IMU_LSM6DSO
 	err = imu_lsm6dso_init();
@@ -74,7 +79,7 @@ int main(void)
 #if CONFIG_IMU_LSM6DSO
 		if (imu_power_down)
 		{
-			k_msleep(10000);
+			k_msleep(1000);
 			continue;
 		}
 		imu_readDisplay_raw_data();

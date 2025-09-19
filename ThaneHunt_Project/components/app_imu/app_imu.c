@@ -187,13 +187,11 @@ Return :
 Example Call :
     lsm6dso_display_raw_data(&sensor_data, trig_cnt);
 */
-static void lsm6dso_display_raw_data(const struct lsm6dso_raw_data *raw_data, int count)
+static void lsm6dso_display_raw_data(const struct lsm6dso_raw_data *raw_data)
 {
-    LOG_INF("accel raw: X:%d Y:%d Z:%d (LSB)",
-            raw_data->accel_x, raw_data->accel_y, raw_data->accel_z);
-    LOG_INF("gyro raw: X:%d Y:%d Z:%d (LSB)",
-            raw_data->gyro_x, raw_data->gyro_y, raw_data->gyro_z);
-    LOG_INF("trig_cnt:%d\n", count);
+    LOG_INF("LSM6DSO ACCEL + GYRP: [AX:%d AY:%d AZ:%d] [GX:%d GY:%d GZ:%d]",
+            raw_data->accel_x, raw_data->accel_y, raw_data->accel_z, raw_data->gyro_x, raw_data->gyro_y, raw_data->gyro_z);
+            k_msleep(500); // Slow down logging for readability
 }
 
 /*
@@ -371,15 +369,12 @@ void imu_readDisplay_raw_data(void)
 {
 
     struct lsm6dso_raw_data sensor_data;
-    static int trig_cnt = 0; // Ensure only initialized once in main scope
-
-    trig_cnt++; // Increment counter at the start of each loop
 
     // Fetch raw data
     if (lsm6dso_fetch_raw_data(i2c_dev, &sensor_data) == 0)
     {
         // Display raw data
-        lsm6dso_display_raw_data(&sensor_data, trig_cnt);
+        lsm6dso_display_raw_data(&sensor_data);
     }
     else
     {

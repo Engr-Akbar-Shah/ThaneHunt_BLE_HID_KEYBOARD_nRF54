@@ -50,10 +50,10 @@ Example Call :
 */
 void enter_device_sleep(void)
 {
-    LOG_DBG("Entering deep sleep (system-off)");
+    LOG_INF("Entering deep sleep (system-off)");
     /* Ensure your app stopped BLE/adv, completed DMA, etc. */
     k_sleep(K_MSEC(5000)); /* grace period */
-    sys_poweroff();        /* does not return */
+    sys_poweroff(); /* does not return */
 }
 
 /*
@@ -74,6 +74,7 @@ Example Call :
 */
 static void idle_work_fn(struct k_work *w)
 {
+    k_msleep(100);
 #if CONFIG_IMU_LSM6DSO
     int err = lsm6dso_accel_gyro_power_down();
     if (err)
@@ -107,7 +108,6 @@ Example Call :
 */
 static void idle_timeout(struct k_timer *t)
 {
-    k_msleep(100);             // debounce delay
     k_work_submit(&idle_work); /* defer to thread context */
 }
 
